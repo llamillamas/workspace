@@ -3,7 +3,7 @@
 *Learn about the person you're helping. Update this as you go.*
 
 - **Name:** Facundo
-- **What to call them:** Facundo
+- **What to call them:** Facu
 - **Timezone:** Hong Kong (UTC+8)
 - **Location:** Hong Kong (nomadic: Argentina → Costa Rica → Mexico → Switzerland → Russia → Los Angeles → Milan → Hong Kong)
 
