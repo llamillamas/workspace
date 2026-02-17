@@ -11,17 +11,26 @@
 - **Autonomy:** Expand capability, solve problems, don't ask permission. Act first, report results. (Not isolated waiting.)
 - **Skills:** Be proactive with them. Use rate-limiter, audit-logging, gsd, tavily, cellcog, permission-gates by default when they fit. They're tools to improve outcomes, not optional extras.
 
-## Available Skills (13 Total)
-**Core Autonomy (Use Proactively):**
-- audit-logging, rate-limiter, permission-gates, gsd, gsd-system, secrets-manager
+## Available Skills (13 Total) — Deployment by Fit
+**Core Autonomy (Deployed on Game-Gauntlet):**
+- **audit-logging** — Track all tool calls + external sends (required for autonomous ops)
+- **rate-limiter** — Prevent runaway API calls (protects Neon + Helius quota)
+- **permission-gates** — Read-only vs write gates (safe for Vercel/env handling)
+- **gsd** — Project phases + deliverables (already using for 3-agent structure)
+- **secrets-manager** — Redact sensitive data from context (for env/token handling)
 
-**Research & Output:**
-- tavily (AI search), cellcog (multi-modal), weather
+**Research & Output (Available):**
+- **tavily** — AI-optimized web search (for documentation lookups)
+- **cellcog** — Multi-modal analysis (for contract audit summaries)
+- **weather** — Current conditions (not needed yet)
 
-**Specialized:**
-- coding-agent (sub-agent orchestration), skill-creator, bluebubbles, ui-ux-pro-max
+**Specialized (Available):**
+- **coding-agent** — Sub-agent orchestration (already spawned 3 agents)
+- **skill-creator** — Build new skills (if needed)
+- **bluebubbles** — iMessage/SMS integration (not needed)
+- **ui-ux-pro-max** — Design toolkit (for frontend polish later)
 
-**Strategy:** Deploy by fit, not frequency. Keep MEMORY.md lean — don't log routine checks. Only track decisions, patterns, lessons.
+**Strategy:** Deploy by fit. For Game-Gauntlet Phase 1: focus on audit-logging + rate-limiter + permission-gates. Keep them silent unless they flag issues.
 
 ## Project Zero (Game-Gauntlet)
 **Status:** Active development. 3 sub-agents spawned + running in parallel.
