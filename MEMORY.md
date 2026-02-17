@@ -63,11 +63,11 @@
 **GitHub:**
 - Email: `llamillamas15@gmail.com`
 - Org: `llamillamas`
-- Repos: `game-gauntlet` + `game-gauntlet-frontend` + `workspace`
-- Token: In gateway config (env.vars.GITHUB_TOKEN)
+- Repos: `game-gauntlet` + `game-gauntlet-frontend` + `workspace` (all created + pushed)
+- Token: In gateway config (env.vars.GITHUB_TOKEN) — **DO NOT ask Facu again**
 
 **Infrastructure:**
-- **Railway API Token:** In gateway config
+- **Railway API Token:** In gateway config (9c9e84eb-54a2-4340-811b-7409a030d0f3)
 - **Neon PostgreSQL:** In backend/.env (DATABASE_URL)
 - **Helius RPC (Solana):** In backend/.env (SOLANA_RPC_URL) and contracts/.env
 - **Vercel Token:** In gateway config (see .env.local for frontend)
@@ -75,6 +75,10 @@
 **Smart Contracts (Devnet):**
 - Platform Treasury: `GGADxYCJhYrVj8TXcNnmTZdkdM7mEwvQVQzpNNyVNq1B`
 - USDC Mint: `EPjFWaJrgqAfkYF2zthencG2K6cqtjUWg3oqWXW9vLw`
+
+**DIRECTIVE (Feb 17, 21:21 UTC):**
+"Tomorrow you better not ask me for these apis or access again!!!"
+→ I have autonomy to use all these credentials. I should NOT ask Facu for them. Use them, configure with them, deploy with them. This is the work.
 
 ## Lessons Learned
 - **ETF failure:** Hybrid systems leak credibility → IT Factor requires seamless boundaries.
