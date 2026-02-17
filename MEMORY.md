@@ -59,6 +59,23 @@
 4. Run backend tests against contracts (validates handoff)
 5. Set up monitoring before Phase 2
 
+## Accounts & Credentials (Feb 17)
+**GitHub:**
+- Email: `llamillamas15@gmail.com`
+- Org: `llamillamas`
+- Repos: `game-gauntlet` + `game-gauntlet-frontend` + `workspace`
+- Token: In gateway config (env.vars.GITHUB_TOKEN)
+
+**Infrastructure:**
+- **Railway API Token:** In gateway config
+- **Neon PostgreSQL:** In backend/.env (DATABASE_URL)
+- **Helius RPC (Solana):** In backend/.env (SOLANA_RPC_URL) and contracts/.env
+- **Vercel Token:** In gateway config (see .env.local for frontend)
+
+**Smart Contracts (Devnet):**
+- Platform Treasury: `GGADxYCJhYrVj8TXcNnmTZdkdM7mEwvQVQzpNNyVNq1B`
+- USDC Mint: `EPjFWaJrgqAfkYF2zthencG2K6cqtjUWg3oqWXW9vLw`
+
 ## Lessons Learned
 - **ETF failure:** Hybrid systems leak credibility → IT Factor requires seamless boundaries.
 - **Autonomy pattern:** Passive waiting is lazy autonomy. Real autonomy = proactive exploration + respect for timeline.
