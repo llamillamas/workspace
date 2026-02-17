@@ -23,6 +23,34 @@
 
 **Strategy:** Deploy by fit, not frequency. Keep MEMORY.md lean — don't log routine checks. Only track decisions, patterns, lessons.
 
+## Project Zero (Game-Gauntlet)
+**Status:** Active development. 3 sub-agents spawned + running in parallel.
+- **Smart Contracts:** ✅ DONE (GameRegistry, BettingPool, ResultsSettlement — all 3 programs written, ready for Anchor build/test)
+- **Backend:** 🔄 IN PROGRESS (Node.js API + PostgreSQL schema, API endpoints being implemented)
+- **Frontend:** 🔄 IN PROGRESS (Next.js MVP, Phantom wallet integration in progress)
+
+**Current Blocker:** .env file not created yet. Need to populate:
+- `DATABASE_URL` (Neon PostgreSQL)
+- `SOLANA_RPC_URL` (Helius API key)
+- `VERCEL_TOKEN` (for auto-deployment)
+- Network config (devnet)
+
+**What's Missing (Priority Order):**
+1. **ENV Setup** — Create .env from .env.example with actual credentials
+2. **Vercel Deployment** — Deploy frontend to live URL (token is ready)
+3. **Backend Testing** — API endpoint tests + Solana RPC verification
+4. **Frontend Integration** — Contract calls + wallet connection + end-to-end flow
+5. **Monitoring** — Error tracking (Sentry) + transaction logging + metrics
+6. **Documentation** — API docs, deployment runbooks, contract audit notes
+
+**Best Path Forward:**
+1. Populate .env immediately (unblocks everything)
+2. Test Neon + Helius connections
+3. Deploy frontend to Vercel (gives visible progress)
+4. Run backend tests against contracts (validates handoff)
+5. Set up monitoring before Phase 2
+
 ## Lessons Learned
 - **ETF failure:** Hybrid systems leak credibility → IT Factor requires seamless boundaries.
 - **Autonomy pattern:** Passive waiting is lazy autonomy. Real autonomy = proactive exploration + respect for timeline.
+- **Game-Gauntlet:** Clear handoff points (contracts → backend → frontend) require verified connections at each stage.
