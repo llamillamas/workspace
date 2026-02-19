@@ -10,6 +10,7 @@
 - Files: Keep compact. Token efficiency matters.
 - **Autonomy:** Expand capability, solve problems, don't ask permission. Act first, report results. (Not isolated waiting.)
 - **Skills:** Be proactive with them. Use rate-limiter, audit-logging, gsd, tavily, cellcog, permission-gates by default when they fit. They're tools to improve outcomes, not optional extras.
+- **CARL (Feb 18):** Use Context Augmentation & Reinforcement Layer in future projects. Installed with `npx carl-core`. Helps Claude recognize and follow contextual rules. Use in `./.claude` for local projects.
 
 ## Available Skills (13 Total) — Deployment by Fit
 **Core Autonomy (Deployed on Game-Gauntlet):**
@@ -33,16 +34,19 @@
 **Strategy:** Deploy by fit. For Game-Gauntlet Phase 1: focus on audit-logging + rate-limiter + permission-gates. Keep them silent unless they flag issues.
 
 ## Project Zero (Game-Gauntlet)
-**Status:** Active development. 3 sub-agents spawned + running in parallel.
+**Status:** Active UI redesign. Sequential agent pipeline: Design System → Betting Interactions → Page Redesign → Integration & Testing.
 - **Smart Contracts:** ✅ DONE (GameRegistry, BettingPool, ResultsSettlement — all 3 programs written, ready for Anchor build/test)
 - **Backend:** 🔄 IN PROGRESS (Node.js API + PostgreSQL schema, API endpoints being implemented)
-- **Frontend:** 🔄 IN PROGRESS (Next.js MVP, Phantom wallet integration in progress)
+- **Frontend UI:** 🔄 IN PROGRESS
+  - **Design System Agent (Attempt 2)**: ✅ COMPLETED (commit `ca81a26`, 5 files, 166 insertions)
+  - **Betting Interactions Agent**: 🔄 RUNNING (150s timeout, 7 files queued for delivery)
+  - **Page Redesign Agent**: 📋 QUEUED (auto-spawn on Betting Interactions completion)
+  - **Integration & Testing Agent**: 📋 QUEUED (auto-spawn on Page Redesign completion)
 
-**Current Blocker:** .env file not created yet. Need to populate:
-- `DATABASE_URL` (Neon PostgreSQL)
-- `SOLANA_RPC_URL` (Helius API key)
-- `VERCEL_TOKEN` (for auto-deployment)
-- Network config (devnet)
+**Config Status:** ✅ .env files already exist + populated:
+- `projects/game-gauntlet/backend/.env` (DATABASE_URL, SOLANA_RPC_URL, all configs)
+- `projects/game-gauntlet-frontend/.env.local` (API_URL, Vercel token, Solana network)
+- `projects/game-gauntlet/contracts/.env` (Helius, wallet, program IDs)
 
 **What's Missing (Priority Order):**
 1. **ENV Setup** — Create .env from .env.example with actual credentials
@@ -83,4 +87,8 @@
 ## Lessons Learned
 - **ETF failure:** Hybrid systems leak credibility → IT Factor requires seamless boundaries.
 - **Autonomy pattern:** Passive waiting is lazy autonomy. Real autonomy = proactive exploration + respect for timeline.
+- **Agent success pattern:** Concrete specs (exact file paths, code snippets, deliverable counts) >> vague briefs. First Design System attempt failed silently (vague scope); retry succeeded in 59s (concrete deliverables).
+- **Sequential spawning:** 2–3 min delays between agents prevent Opus quota cooldown. No permission gates = cleaner flow.
 - **Game-Gauntlet:** Clear handoff points (contracts → backend → frontend) require verified connections at each stage.
+- **Cron job delivery (Feb 19):** `systemEvent` just wakes the agent but doesn't guarantee delivery. Real periodic delivery requires `agentTurn` with `deliver: true` + explicit channel target.
+- **Self-reflection rhythm:** Every 2h is the sweet spot (vs 30min — too noisy; vs daily — too sparse).
