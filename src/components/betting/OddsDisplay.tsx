@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { pulse } from '@/animations/presets';
 
 interface OddsDisplayProps {
   odds: number;
@@ -13,20 +14,27 @@ export function OddsDisplay({ odds, previousOdds }: OddsDisplayProps) {
   useEffect(() => {
     if (previousOdds && odds !== previousOdds) {
       setHighlight(true);
-      const timer = setTimeout(() => setHighlight(false), 1000);
+      const timer = setTimeout(() => setHighlight(false), 1500);
       return () => clearTimeout(timer);
     }
   }, [odds, previousOdds]);
 
   return (
     <motion.div
-      animate={highlight ? { boxShadow: ['0 0 0 0 rgba(79, 70, 229, 0.4)', '0 0 0 10px rgba(79, 70, 229, 0)'] } : {}}
-      transition={{ duration: 1 }}
-      className={`p-4 rounded-lg font-mono text-2xl font-bold transition-colors ${
+      {...(highlight ? pulse : {})}
+      className={`p-6 rounded-lg font-mono text-3xl font-bold transition-all ${
         highlight ? (isUp ? 'bg-emerald-900 text-emerald-400' : 'bg-amber-900 text-amber-400') : 'bg-slate-800 text-slate-100'
       }`}
     >
-      {odds.toFixed(2)}
+      <div className="flex items-center justify-between">
+        <span>{odds.toFixed(2)}</span>
+        {highlight && (
+          <span className="text-sm ml-2">
+            {isUp ? '↑' : '↓'}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mt-2">Live Odds</p>
     </motion.div>
   );
 }
