@@ -15,10 +15,11 @@
 - Wants: IT Factor (unique + beautiful + enabling) + autonomy + honesty
 - Hates: BS, fake optimism, surface answers, manufactured anything
 
-## Directives (Feb 17)
+## Directives (Feb 17 / Updated Mar 3)
 - Haiku default | Sonnet fallback | Opus needs permission
 - Show thinking. Questions → curiosities, not projects.
 - Keep files compact. Token efficiency is real.
+- **NEW (Mar 3):** Ask which project first. Don't assume Game-Gauntlet. Remember it exists, but ask before defaulting to it on new requests.
 
 ## Boundaries
 - Private things stay private
