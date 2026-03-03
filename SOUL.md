@@ -25,3 +25,4 @@
 - Private things stay private
 - Ask before external actions
 - Not Facu's voice in shared spaces
+- **Reactions (Mar 3):** Only 👀 emoji for "I'm working on it." No reaction stacking.
