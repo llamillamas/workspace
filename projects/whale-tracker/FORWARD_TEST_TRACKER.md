@@ -1,9 +1,19 @@
-# Forward Test Tracker — Live Copy Trading
+# Forward Test Tracker — Paper Simulation (NOT Live Execution)
 
 **Started:** March 4, 2026, 13:01 UTC  
+**Type:** 🔵 **SIMULATED** (Paper test, no real capital)  
 **Hypothesis:** Top 10 traders from March 4 will continue to outperform  
 **Duration:** 30 days (until April 3, 2026)  
-**Paper Capital:** $10,000 (simulated, no real money)
+**Paper Capital:** $10,000 (no real money at risk)
+
+---
+
+## ⚠️ WHAT THIS TEST DOES
+
+✅ **Simulates:** "If we had copied these traders at their historical ROI, would we profit?"  
+❌ **Does NOT:** Execute real trades or move actual capital
+
+This is **Strategy Validation**, not **Live Execution**
 
 ---
 

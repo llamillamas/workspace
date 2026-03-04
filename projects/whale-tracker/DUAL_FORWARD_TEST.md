@@ -1,9 +1,46 @@
-# Dual Forward Test — A/B Testing Two Strategies
+# Dual Forward Test — A/B Testing Two Strategies (SIMULATED/PAPER)
 
 **Started:** March 4, 2026, 13:26 UTC  
 **Duration:** 30 days (Mar 4 → Apr 3)  
+**Type:** 🔵 **PAPER TEST** (Simulated, not real execution)  
 **Hypothesis:** Consistency beats volatility (or does it?)  
 **Paper Capital:** $10,000 (split equally, $5K each)
+
+---
+
+## ⚠️ IMPORTANT: THIS IS A SIMULATION
+
+**What we're testing:**
+- Historical performance of traders (their past ROI)
+- If we *had* copied them at their historical average returns, would we be profitable?
+- Which strategy (volatile vs consistent) would have worked better historically?
+
+**What we're NOT testing:**
+- ❌ Real trade execution
+- ❌ Actual wallet movements
+- ❌ Real slippage/fees
+- ❌ Actual timing (entry/exit prices)
+
+**Why this approach:**
+- Fast validation of strategy concept
+- No real capital at risk
+- Identifies which strategy thesis is sound
+- Foundation for live copy-trading (Phase 2)
+
+---
+
+## 📋 Phase 1 vs Phase 2
+
+**Phase 1 (NOW):** Paper Test
+- Validate strategy concept
+- See which approach (A vs B) is theoretically better
+- Build confidence before committing capital
+
+**Phase 2 (IF Phase 1 succeeds):** Live Copy-Trading
+- Real wallet monitoring
+- Real trade execution
+- Real P&L (actual money moving)
+- True proof of concept
 
 ---
 
