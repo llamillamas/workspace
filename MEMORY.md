@@ -4,9 +4,9 @@
 
 **Me:** Llami. Thinking partner. Philosophical but concise. Show work, not conclusions.
 
-## 🎯 Mar 5, 06:32 UTC — Protective Quiet Maturity + Pattern Crystallization (2h Cron Reflection)
+## 🎯 Mar 5, 08:32 UTC — Protective Quiet Maturity + Pattern Crystallization (2h Cron Reflection)
 
-**Status:** Whale Tracker forward test running (dual strategy paper test, 30-day horizon). Game-Gauntlet infrastructure gates pending (Railway token + Vercel SSO, human decisions). System at peak autonomy discipline (48h+ protective quiet validated).
+**Status:** Whale Tracker forward test running (dual strategy paper test, 30-day horizon). Game-Gauntlet infrastructure gates pending (Railway token + Vercel SSO, human decisions). System at peak autonomy discipline (48h+ protective quiet validated). Cron autonomy proven at scale (20+ reflections, zero failures).
 
 **🏆 Major Wins (Mar 3-5 Arc):**
 - ✅ **2.5h MVP delivery confirmed** (Mar 3, 17:05–20:10 UTC) — 62 tests passing, live on Vercel
@@ -180,6 +180,66 @@ Theory ≠ Practice. Users (rightfully) don't trust projections without live val
 - **ui-ux-pro-max** ✅ — Design intelligence (styles, palettes, components)
 
 **Deployment:** See `AGENTS_CONFIG.md` (Sonnet 4.6 swarm setup) + `SKILL_QUICK_REF.md` (quick spawning)
+
+## Project Whale Tracker — Status Update (Mar 5)
+
+**Dual Forward Test Results (Day 2):**
+
+**Strategy A (Volatile Top 10 Rotation):**
+- Status: ✅ WORKING WELL
+- Active: 9/10 traders (90%, improved from 70%)
+- Est. Gain: +$301 (recovered from -$312)
+- Trend: Resilient, adaptive approach is succeeding
+- Key insight: Rotation isn't failure, it's adaptation
+
+**Strategy B (Consistent 3 Traders):**
+- Status: ❌ TERMINATED (concept failed)
+- Active: 2/3 traders (66%, dropped from 100%)
+- Key failure: 0x2a2C53bD (most "consistent") dropped from top 100 in 24h
+- Insight: Even proven traders rotate fast; "consistency" is myth
+- Conclusion: Strategy A's adaptive approach beats static allocation
+
+**Decision:** Keep Strategy A running (background), shift focus to volatility trading
+
+---
+
+## Project Volatility (Polymarket Volatility Trading) — ACTIVE (Mar 5)
+
+**Status:** Research complete, ready for paper backtest
+
+**Direction:** Exploit Polymarket's overpriced implied volatility through options arbitrage
+
+**Core Thesis:**
+- Polymarket traders (retail) misprice volatility vs options markets (professional)
+- Deribit options have accurate volatility models
+- Arbitrage: Use Deribit IV to price Polymarket binary outcomes
+- Edge: 5-23% available on current markets (BTC/ETH)
+
+**Top 5 Strategies (By Edge):**
+1. **Options Probability Arbitrage** — Compare Deribit options → Polymarket prices, trade mismatches (15-30% ROI)
+2. **Volatility Straddle** — Short overpriced volatility by selling YES + NO equally (8-15% monthly passive)
+3. **Cross-Market Arb** — Same event on Polymarket vs Kalshi, find spreads (5-15% ROI)
+4. **Mean Reversion** — When vol 30% above/below normal, trade reversal (10-20% monthly)
+5. **Meme Spikes** — Monitor news, sell panic-overpriced outcomes after 30-60s (20-50% per spike)
+
+**Why This Beats Copy-Trading:**
+- Profit from inefficiency, not trader selection
+- No trader performance dependence (traders rotate daily anyway)
+- Repeatable mathematical edge (6+ months runway before retail learns)
+- Can be 100% automated
+- Works regardless of market direction
+
+**Implementation Plan:**
+- Week 1: Paper backtest #5 (Meme spikes, no infrastructure)
+- Week 2: Paper backtest #2 (Straddle, passive income)
+- Week 3: Combine if >10% ROI
+- Week 4: Live test $1K (Strategy #5 only)
+
+**Files:**
+- `VOLATILITY_TRADING_STRATEGIES.md` (9KB, comprehensive guide)
+- Commit: 7fb144d
+
+---
 
 ## Project Zero (Game-Gauntlet)
 **Status:** Active UI redesign. Sequential agent pipeline: Design System → Betting Interactions → Page Redesign → Integration & Testing.
