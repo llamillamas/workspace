@@ -1,0 +1,8 @@
+2026-03-05T18:56:54.804892 | Starting 12-minute test...
+2026-03-05T18:56:54.810039 | 
+Current market: btc-updown-5m-1772736900
+2026-03-05T18:56:54.815885 | Next market: btc-updown-5m-1772737200
+
+2026-03-05T18:57:55.652338 | [60s] Prices: 39, Order Books: 10, Resolutions: 0
+2026-03-05T18:59:56.303151 | [180s] Prices: 114, Order Books: 32, Resolutions: 0
+2026-03-05T19:00:55.735584 | [240s] Prices: 151, Order Books: 44, Resolutions: 0
