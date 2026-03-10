@@ -2,7 +2,7 @@
 
 /**
  * VoiceCallDemo - Voice call interface with VAD (Voice Activity Detection).
- * Waits for user to finish speaking before sending audio to backend.
+ * Includes mic volume gauge for debugging audio input.
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
@@ -26,9 +26,9 @@ function getWsUrl(): string {
 const WS_URL = getWsUrl();
 
 // VAD settings
-const SILENCE_THRESHOLD = 0.015; // Audio energy below this = silence
-const SILENCE_DURATION_MS = 1200; // Wait 1.2s of silence before sending
-const MIN_SPEECH_DURATION_MS = 300; // Minimum speech duration to consider valid
+const SILENCE_THRESHOLD = 0.02;
+const SILENCE_DURATION_MS = 1200;
+const MIN_SPEECH_DURATION_MS = 300;
 
 export function VoiceCallDemo() {
   const store = useCallStore();
@@ -36,6 +36,8 @@ export function VoiceCallDemo() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [micVolume, setMicVolume] = useState(0);
+  const [debugInfo, setDebugInfo] = useState('Idle');
 
   const websocketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -48,6 +50,8 @@ export function VoiceCallDemo() {
   const speechStartTimeRef = useRef<number | null>(null);
   const lastSpeechTimeRef = useRef<number>(0);
   const isPlayingResponseRef = useRef<boolean>(false);
+  const isProcessingRef = useRef<boolean>(false); // Ref mirror of isProcessing to avoid stale closures
+  const chunkCountRef = useRef<number>(0);
 
   // Timer for call duration
   useEffect(() => {
@@ -65,6 +69,7 @@ export function VoiceCallDemo() {
   const handleStartCall = async () => {
     setError(null);
     setIsInitializing(true);
+    setDebugInfo('Starting call...');
 
     try {
       const callId = generateCallId();
@@ -72,6 +77,7 @@ export function VoiceCallDemo() {
 
       const mediaStream = await requestMicrophone();
       mediaStreamRef.current = mediaStream;
+      setDebugInfo('Mic acquired');
 
       // Audio context for VAD analysis
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -86,10 +92,13 @@ export function VoiceCallDemo() {
       source.connect(analyser);
 
       // MediaRecorder for proper webm/opus encoding
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      console.log('[VoiceCall] Using MIME type:', mimeType);
+
       const mediaRecorder = new MediaRecorder(mediaStream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm',
+        mimeType,
         audioBitsPerSecond: 64000,
       });
       mediaRecorderRef.current = mediaRecorder;
@@ -98,45 +107,57 @@ export function VoiceCallDemo() {
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
+          chunkCountRef.current++;
         }
       };
 
       // WebSocket
       const wsUrl = `${WS_URL}/api/voice/ws/call/${callId}`;
+      console.log('[VoiceCall] Connecting to:', wsUrl);
       const websocket = new WebSocket(wsUrl);
       websocket.binaryType = 'arraybuffer';
       websocketRef.current = websocket;
 
       websocket.onopen = () => {
+        console.log('[VoiceCall] WebSocket connected');
         setIsInitializing(false);
-        mediaRecorder.start(250); // Collect chunks every 250ms
+        setDebugInfo('Connected - speak now');
+        mediaRecorder.start(250);
         startVAD();
-        toast.success('Call started. Speak clearly, I\'ll wait for you to finish.');
+        toast.success('Call started. Speak clearly.');
       };
 
       websocket.onmessage = async (event) => {
         if (typeof event.data === 'string') {
           const message = JSON.parse(event.data);
+          console.log('[VoiceCall] Message received:', message.type);
           await handleWebSocketMessage(message);
         } else if (event.data instanceof ArrayBuffer) {
+          console.log('[VoiceCall] Audio response received:', event.data.byteLength, 'bytes');
           setIsProcessing(false);
+          isProcessingRef.current = false;
+          setDebugInfo('Playing response...');
           isPlayingResponseRef.current = true;
           const audioBlob = new Blob([event.data], { type: 'audio/mp3' });
           try {
             await playAudio(audioBlob);
           } catch (e) {
-            console.error('Failed to play audio:', e);
+            console.error('[VoiceCall] Failed to play audio:', e);
           }
           isPlayingResponseRef.current = false;
+          setDebugInfo('Listening...');
         }
       };
 
-      websocket.onerror = () => {
+      websocket.onerror = (e) => {
+        console.error('[VoiceCall] WebSocket error:', e);
         setError('Connection error. Please try again.');
         handleEndCall();
       };
 
-      websocket.onclose = () => {};
+      websocket.onclose = (e) => {
+        console.log('[VoiceCall] WebSocket closed:', e.code, e.reason);
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start call';
       setError(message);
@@ -163,17 +184,20 @@ export function VoiceCallDemo() {
       }
       const rms = Math.sqrt(sum / dataArray.length);
 
+      // Update volume meter
+      setMicVolume(Math.min(1, rms * 5));
+
       const now = Date.now();
       const isSpeechDetected = rms > SILENCE_THRESHOLD;
 
       if (isSpeechDetected) {
         if (!speechStartTimeRef.current) {
           speechStartTimeRef.current = now;
+          console.log('[VAD] Speech started');
         }
         lastSpeechTimeRef.current = now;
         setIsSpeaking(true);
       } else {
-        // Check if we've been silent long enough after speech
         const silenceDuration = now - lastSpeechTimeRef.current;
         const speechDuration = speechStartTimeRef.current
           ? lastSpeechTimeRef.current - speechStartTimeRef.current
@@ -183,37 +207,54 @@ export function VoiceCallDemo() {
           speechStartTimeRef.current &&
           silenceDuration >= SILENCE_DURATION_MS &&
           speechDuration >= MIN_SPEECH_DURATION_MS &&
-          !isProcessing &&
+          !isProcessingRef.current &&
           !isPlayingResponseRef.current
         ) {
-          // User finished speaking - send audio
-          sendAudioChunks();
+          console.log(`[VAD] Silence detected after ${speechDuration}ms speech. Sending ${audioChunksRef.current.length} chunks...`);
+          setDebugInfo(`Sending audio (${audioChunksRef.current.length} chunks)...`);
+          sendAudio();
           speechStartTimeRef.current = null;
           setIsSpeaking(false);
         } else if (silenceDuration > 200) {
           setIsSpeaking(false);
         }
       }
-    }, 50); // Check every 50ms
+    }, 50);
   };
 
-  const sendAudioChunks = useCallback(() => {
+  const sendAudio = () => {
     const ws = websocketRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (audioChunksRef.current.length === 0) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.warn('[VoiceCall] WebSocket not open, cannot send');
+      return;
+    }
+    if (audioChunksRef.current.length === 0) {
+      console.warn('[VoiceCall] No audio chunks to send');
+      return;
+    }
 
-    // Combine all collected chunks into one blob
-    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    const chunks = audioChunksRef.current.slice();
     audioChunksRef.current = [];
+    chunkCountRef.current = 0;
 
-    // Send as binary
+    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+    console.log(`[VoiceCall] Sending audio blob: ${audioBlob.size} bytes (${chunks.length} chunks)`);
+
+    setIsProcessing(true);
+    isProcessingRef.current = true;
+    setDebugInfo('Processing your speech...');
+
     audioBlob.arrayBuffer().then((buffer) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(buffer);
-        setIsProcessing(true);
+        console.log(`[VoiceCall] Sent ${buffer.byteLength} bytes to server`);
+      } else {
+        console.warn('[VoiceCall] WebSocket closed before send');
+        setIsProcessing(false);
+        isProcessingRef.current = false;
       }
     });
-  }, []);
+  };
 
   const handleWebSocketMessage = async (message: any) => {
     try {
@@ -235,9 +276,14 @@ export function VoiceCallDemo() {
         if (lead_score) {
           store.updateLeadScore(lead_score);
         }
+      } else if (message.type === 'error') {
+        console.error('[VoiceCall] Server error:', message.data?.message);
+        setDebugInfo(`Error: ${message.data?.message}`);
+        setIsProcessing(false);
+        isProcessingRef.current = false;
       }
     } catch (err) {
-      console.error('Error handling WebSocket message:', err);
+      console.error('[VoiceCall] Error handling message:', err);
     }
   };
 
@@ -258,10 +304,14 @@ export function VoiceCallDemo() {
 
     audioChunksRef.current = [];
     speechStartTimeRef.current = null;
+    chunkCountRef.current = 0;
     store.endCall();
     setError(null);
     setIsSpeaking(false);
     setIsProcessing(false);
+    isProcessingRef.current = false;
+    setMicVolume(0);
+    setDebugInfo('Idle');
     toast.success('Call ended');
   };
 
@@ -299,6 +349,29 @@ export function VoiceCallDemo() {
                   {formatDuration(store.duration)}
                 </span>
               </div>
+
+              {/* Mic Volume Gauge */}
+              {store.callActive && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 font-medium text-sm">Mic Input</span>
+                    <span className="text-xs text-gray-500">{Math.round(micVolume * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-75 ${
+                        micVolume > 0.6 ? 'bg-red-500' : micVolume > 0.3 ? 'bg-green-500' : micVolume > 0.05 ? 'bg-green-400' : 'bg-gray-300'
+                      }`}
+                      style={{ width: `${Math.max(2, micVolume * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Silent</span>
+                    <span>|</span>
+                    <span>Loud</span>
+                  </div>
+                </div>
+              )}
 
               {/* Call ID */}
               {store.callId && (
@@ -345,7 +418,7 @@ export function VoiceCallDemo() {
                 </button>
               </div>
 
-              {/* Listening/Speaking indicator */}
+              {/* Status indicator */}
               {store.callActive && (
                 <div
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
@@ -380,6 +453,13 @@ export function VoiceCallDemo() {
                       ? 'Hearing you...'
                       : 'Listening... (speak when ready)'}
                   </span>
+                </div>
+              )}
+
+              {/* Debug info */}
+              {store.callActive && (
+                <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                  <p className="text-xs text-gray-500 font-mono">{debugInfo}</p>
                 </div>
               )}
             </div>

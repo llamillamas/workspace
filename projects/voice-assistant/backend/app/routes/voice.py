@@ -55,10 +55,15 @@ async def websocket_voice_call(websocket: WebSocket, call_id: str):
             data = await websocket.receive()
 
             if "bytes" in data:
-                await process_audio_chunk(websocket, call_handler, data["bytes"])
+                audio_bytes = data["bytes"]
+                logger.info(f"Received audio chunk: {len(audio_bytes)} bytes")
+                await process_audio_chunk(websocket, call_handler, audio_bytes)
             elif "text" in data:
+                logger.info(f"Received text message: {data['text'][:100]}")
                 text_data = json.loads(data["text"])
                 await handle_control_message(websocket, call_handler, text_data)
+            else:
+                logger.warning(f"Received unknown data type: {list(data.keys())}")
 
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
@@ -82,8 +87,10 @@ async def process_audio_chunk(
     """
     try:
         # Step 1: Transcribe with Deepgram
+        logger.info(f"STT: sending {len(audio_bytes)} bytes to Deepgram...")
         stt_result = await stt_client.transcribe(audio_bytes)
         user_message = stt_result.get("text", "").strip()
+        logger.info(f"STT result: '{user_message}' (confidence: {stt_result.get('confidence', 'N/A')})")
 
         if not user_message:
             await websocket.send_json({
