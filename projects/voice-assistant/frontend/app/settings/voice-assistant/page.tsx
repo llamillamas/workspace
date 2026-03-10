@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import ProtectedLayout from '@/components/ProtectedLayout';
+import { apiClient } from '@/lib/api-client';
 
 import BusinessInfoTab from '@/components/settings/BusinessInfoTab';
 import VoiceSettingsTab from '@/components/settings/VoiceSettingsTab';
@@ -45,27 +46,55 @@ interface VoiceConfig {
   hot_lead_actions: string[];
 }
 
+const defaultConfig: VoiceConfig = {
+  id: '',
+  company_name: '',
+  website_url: '',
+  industry: '',
+  description: '',
+  target_customer: '',
+  main_products: '',
+  unique_value_prop: '',
+  competitors: '',
+  voice_engine: 'deepgram',
+  voice_name: 'aura-asteria-en',
+  voice_speed: 1.0,
+  voice_pitch: 1.0,
+  voice_volume: 1.0,
+  tonality: 'professional',
+  personality_description: '',
+  opening_statement: 'Hello! How can I help you today?',
+  objection_handling: '',
+  allow_escalation: true,
+  escalation_trigger_keywords: [],
+  max_response_length: 'medium',
+  topics_to_avoid: [],
+  fallback_response: "I'm not sure about that. Can you tell me more?",
+  qualification_focus: 'general',
+  info_to_collect: [],
+  auto_escalate_on_hot: false,
+  hot_lead_actions: [],
+};
+
 export default function VoiceAssistantSettingsPage() {
-  const [config, setConfig] = useState<VoiceConfig | null>(null);
+  const [config, setConfig] = useState<VoiceConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState('');
 
-  // Load configuration on mount
   useEffect(() => {
     loadConfig();
   }, []);
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('/api/voice-config');
-      if (response.ok) {
-        const data = await response.json();
-        setConfig(data);
+      const response = await apiClient.get('/voice-config');
+      if (response.data) {
+        setConfig({ ...defaultConfig, ...response.data });
       }
     } catch (error) {
-      console.error('Failed to load config:', error);
+      console.error('Failed to load config, using defaults:', error);
     } finally {
       setLoading(false);
     }
@@ -74,113 +103,92 @@ export default function VoiceAssistantSettingsPage() {
   const handleSaveConfig = async (updatedConfig: Partial<VoiceConfig>) => {
     setSaving(true);
     setSaveStatus('idle');
-    
-    try {
-      const response = await fetch('/api/voice-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedConfig),
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setConfig(data);
+    try {
+      const response = await apiClient.post('/voice-config', updatedConfig);
+      if (response.data) {
+        setConfig({ ...defaultConfig, ...response.data });
         setSaveStatus('success');
         setSaveMessage('Configuration saved successfully!');
         setTimeout(() => setSaveStatus('idle'), 3000);
-      } else {
-        setSaveStatus('error');
-        setSaveMessage('Failed to save configuration');
       }
     } catch (error) {
       setSaveStatus('error');
-      setSaveMessage(`Error: ${error}`);
+      setSaveMessage('Failed to save configuration. The backend may not support this endpoint yet.');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Loading configuration...</p>
-      </div>
-    );
-  }
-
-  if (!config) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Failed to load configuration. Please try again.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
     <ProtectedLayout>
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Voice Assistant Configuration</h1>
-        <p className="text-gray-600">Customize your voice assistant's business information, voice, tonality, and behavior.</p>
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Voice Assistant Configuration</h1>
+          <p className="text-gray-600">Customize your voice assistant's business information, voice, tonality, and behavior.</p>
+        </div>
+
+        {saveStatus === 'success' && (
+          <Alert className="mb-4 bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">{saveMessage}</AlertDescription>
+          </Alert>
+        )}
+
+        {saveStatus === 'error' && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{saveMessage}</AlertDescription>
+          </Alert>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader className="w-6 h-6 animate-spin text-gray-400 mr-2" />
+            <p className="text-gray-500">Loading configuration...</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="business-info" className="w-full">
+            <TabsList className="grid w-full grid-cols-7 mb-8">
+              <TabsTrigger value="business-info">Business</TabsTrigger>
+              <TabsTrigger value="voice">Voice</TabsTrigger>
+              <TabsTrigger value="tonality">Tonality</TabsTrigger>
+              <TabsTrigger value="qualification">Qualification</TabsTrigger>
+              <TabsTrigger value="knowledge-base">Knowledge</TabsTrigger>
+              <TabsTrigger value="prompts">Prompts</TabsTrigger>
+              <TabsTrigger value="test">Test</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="business-info">
+              <BusinessInfoTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+
+            <TabsContent value="voice">
+              <VoiceSettingsTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+
+            <TabsContent value="tonality">
+              <TonalityTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+
+            <TabsContent value="qualification">
+              <LeadQualificationTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+
+            <TabsContent value="knowledge-base">
+              <KnowledgeBaseTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+
+            <TabsContent value="prompts">
+              <SystemPromptTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+
+            <TabsContent value="test">
+              <TestTab config={config} onSave={handleSaveConfig} isSaving={saving} />
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
-
-      {saveStatus === 'success' && (
-        <Alert className="mb-4 bg-green-50 border-green-200">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">{saveMessage}</AlertDescription>
-        </Alert>
-      )}
-
-      {saveStatus === 'error' && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{saveMessage}</AlertDescription>
-        </Alert>
-      )}
-
-      <Tabs defaultValue="business-info" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 mb-8">
-          <TabsTrigger value="business-info">Business</TabsTrigger>
-          <TabsTrigger value="voice">Voice</TabsTrigger>
-          <TabsTrigger value="tonality">Tonality</TabsTrigger>
-          <TabsTrigger value="qualification">Qualification</TabsTrigger>
-          <TabsTrigger value="knowledge-base">Knowledge</TabsTrigger>
-          <TabsTrigger value="prompts">Prompts</TabsTrigger>
-          <TabsTrigger value="test">Test</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="business-info">
-          <BusinessInfoTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-
-        <TabsContent value="voice">
-          <VoiceSettingsTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-
-        <TabsContent value="tonality">
-          <TonalityTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-
-        <TabsContent value="qualification">
-          <LeadQualificationTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-
-        <TabsContent value="knowledge-base">
-          <KnowledgeBaseTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-
-        <TabsContent value="prompts">
-          <SystemPromptTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-
-        <TabsContent value="test">
-          <TestTab config={config} onSave={handleSaveConfig} isSaving={saving} />
-        </TabsContent>
-      </Tabs>
-    </div>
     </ProtectedLayout>
   );
 }
