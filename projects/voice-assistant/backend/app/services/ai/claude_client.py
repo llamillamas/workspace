@@ -18,130 +18,108 @@ class ClaudeClient:
     Client for Claude AI responses.
     Falls back to intelligent mocking when API key is not available.
     """
-    
+
     def __init__(self, api_key: Optional[str] = None):
-        """
-        Initialize Claude client.
-        
-        Args:
-            api_key: Optional Anthropic API key. If not provided, uses mock mode.
-                    Can also be set via ANTHROPIC_API_KEY environment variable.
-        """
         self.api_key = api_key or os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
         self.api_url = "https://api.anthropic.com/v1/messages"
         self.model = "claude-sonnet-4-5-20250929"  # Claude Sonnet 4.5
         self.use_mock = not self.api_key
-        
+
         if self.use_mock:
             logger.info("Claude API key not found. Using mock mode for responses.")
         else:
             logger.info("Claude API key configured. Using real API for responses.")
-    
+
     def get_response(self, user_message: str, conversation_history: Optional[List[dict]] = None) -> str:
-        """
-        Get AI response to user message.
-        Automatically uses real API or mock based on configuration.
-        
-        Args:
-            user_message: Latest user message
-            conversation_history: List of previous messages {role, text}
-        
-        Returns:
-            AI response text
-        
-        Raises:
-            RuntimeError: If API call fails and fallback to mock is disabled
-        """
+        """Sync wrapper - use get_response_async in async contexts."""
         if self.use_mock:
             return self._get_mock_response(user_message, conversation_history or [])
-        else:
-            return self._get_real_response(user_message, conversation_history or [])
-    
-    def _get_real_response(self, user_message: str, conversation_history: List[dict]) -> str:
-        """
-        Get response from actual Claude API.
-        
-        This is a skeleton for integration with Anthropic API.
-        In production, would use official Python SDK.
-        """
-        if not self.api_key:
-            logger.warning("API key missing, falling back to mock")
-            return self._get_mock_response(user_message, conversation_history)
-        
+
+        # Sync fallback for non-async callers
         try:
-            # Build conversation for Claude
-            messages = []
-            
-            # Add conversation history
-            for msg in conversation_history:
-                messages.append({
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("text", "")
-                })
-            
-            # Add current user message
-            messages.append({
-                "role": "user",
-                "content": user_message
-            })
-            
-            # Prepare request to Claude API
-            headers = {
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
-            }
-            
-            payload = {
-                "model": self.model,
-                "max_tokens": 80,  # Very short for fast voice responses
-                "system": SYSTEM_PROMPT,
-                "messages": messages
-            }
-            
-            # Make request (using httpx for async compatibility)
-            # Note: In production would use official Anthropic SDK
+            messages = self._build_messages(user_message, conversation_history or [])
             response = httpx.post(
                 self.api_url,
-                json=payload,
-                headers=headers,
+                json=self._build_payload(messages),
+                headers=self._build_headers(),
                 timeout=10
             )
-            
             response.raise_for_status()
-            
-            # Extract response text
-            result = response.json()
-            if result.get("content") and len(result["content"]) > 0:
-                response_text = result["content"][0].get("text", "")
-                if response_text:
-                    logger.debug(f"Claude response received: {response_text[:50]}...")
-                    return response_text.strip()
-            
-            logger.warning("Empty response from Claude API, using mock")
-            return self._get_mock_response(user_message, conversation_history)
-        
+            return self._extract_response(response.json(), user_message, conversation_history or [])
+        except Exception as e:
+            logger.error(f"Claude API error: {e}")
+            return self._get_mock_response(user_message, conversation_history or [])
+
+    async def get_response_async(self, user_message: str, conversation_history: Optional[List[dict]] = None) -> str:
+        """Async API call - does not block the event loop."""
+        if self.use_mock:
+            return self._get_mock_response(user_message, conversation_history or [])
+
+        if not self.api_key:
+            return self._get_mock_response(user_message, conversation_history or [])
+
+        try:
+            messages = self._build_messages(user_message, conversation_history or [])
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.api_url,
+                    json=self._build_payload(messages),
+                    headers=self._build_headers(),
+                    timeout=10
+                )
+
+            response.raise_for_status()
+            return self._extract_response(response.json(), user_message, conversation_history or [])
+
         except httpx.HTTPStatusError as e:
             logger.error(f"Claude API HTTP error {e.response.status_code}: {e.response.text[:200]}")
-            logger.info("Falling back to mock responses")
-            return self._get_mock_response(user_message, conversation_history)
+            return self._get_mock_response(user_message, conversation_history or [])
 
         except httpx.RequestError as e:
             logger.error(f"Claude API request failed: {e}")
-            logger.info("Falling back to mock responses")
-            return self._get_mock_response(user_message, conversation_history)
+            return self._get_mock_response(user_message, conversation_history or [])
 
         except Exception as e:
             logger.error(f"Claude API error: {e}")
-            return self._get_mock_response(user_message, conversation_history)
-    
+            return self._get_mock_response(user_message, conversation_history or [])
+
+    def _build_messages(self, user_message: str, conversation_history: List[dict]) -> list:
+        messages = []
+        for msg in conversation_history:
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("text", "")
+            })
+        messages.append({"role": "user", "content": user_message})
+        return messages
+
+    def _build_headers(self) -> dict:
+        return {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+
+    def _build_payload(self, messages: list) -> dict:
+        return {
+            "model": self.model,
+            "max_tokens": 80,
+            "system": SYSTEM_PROMPT,
+            "messages": messages
+        }
+
+    def _extract_response(self, result: dict, user_message: str, conversation_history: List[dict]) -> str:
+        if result.get("content") and len(result["content"]) > 0:
+            response_text = result["content"][0].get("text", "")
+            if response_text:
+                logger.info(f"Claude response: {response_text[:80]}")
+                return response_text.strip()
+
+        logger.warning("Empty response from Claude API, using mock")
+        return self._get_mock_response(user_message, conversation_history)
+
     def _get_mock_response(self, user_message: str, conversation_history: List[dict]) -> str:
-        """
-        Generate intelligent mock response based on conversation context.
-        
-        This provides realistic lead qualification responses without API keys,
-        enabling fully offline operation during development/demos.
-        """
         try:
             response = get_mock_response_by_keywords(user_message, conversation_history)
             logger.debug(f"Mock response generated: {response[:50]}...")
@@ -149,9 +127,8 @@ class ClaudeClient:
         except Exception as e:
             logger.error(f"Mock response generation failed: {e}")
             return "That's interesting. Can you tell me more?"
-    
+
     def get_config(self) -> dict:
-        """Get client configuration info."""
         return {
             "model": self.model,
             "mode": "real" if not self.use_mock else "mock",
