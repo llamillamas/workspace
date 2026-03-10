@@ -29,7 +29,7 @@ class ClaudeClient:
         """
         self.api_key = api_key or os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
         self.api_url = "https://api.anthropic.com/v1/messages"
-        self.model = "claude-sonnet-4-6-20250514"  # Latest Claude Sonnet 4.6
+        self.model = "claude-sonnet-4-6-20250514"  # Claude Sonnet 4.6
         self.use_mock = not self.api_key
         
         if self.use_mock:
@@ -86,11 +86,15 @@ class ClaudeClient:
             })
             
             # Prepare request to Claude API
+            # OAuth tokens (sk-ant-oat01-*) use Bearer auth; regular keys use x-api-key
             headers = {
-                "x-api-key": self.api_key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json"
             }
+            if self.api_key.startswith("sk-ant-oat01-"):
+                headers["Authorization"] = f"Bearer {self.api_key}"
+            else:
+                headers["x-api-key"] = self.api_key
             
             payload = {
                 "model": self.model,
@@ -121,11 +125,16 @@ class ClaudeClient:
             logger.warning("Empty response from Claude API, using mock")
             return self._get_mock_response(user_message, conversation_history)
         
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Claude API HTTP error {e.response.status_code}: {e.response.text[:200]}")
+            logger.info("Falling back to mock responses")
+            return self._get_mock_response(user_message, conversation_history)
+
         except httpx.RequestError as e:
             logger.error(f"Claude API request failed: {e}")
             logger.info("Falling back to mock responses")
             return self._get_mock_response(user_message, conversation_history)
-        
+
         except Exception as e:
             logger.error(f"Claude API error: {e}")
             return self._get_mock_response(user_message, conversation_history)
