@@ -26,9 +26,11 @@ function getWsUrl(): string {
 const WS_URL = getWsUrl();
 
 // VAD settings
-const SILENCE_THRESHOLD = 0.02;
 const SILENCE_DURATION_MS = 1200;
 const MIN_SPEECH_DURATION_MS = 300;
+const MAX_SPEECH_DURATION_MS = 10000; // Force send after 10s of continuous speech
+const NOISE_CALIBRATION_MS = 1500; // Calibrate ambient noise for 1.5s
+const SPEECH_MULTIPLIER = 3.0; // Speech must be 3x ambient noise
 
 export function VoiceCallDemo() {
   const store = useCallStore();
@@ -50,8 +52,11 @@ export function VoiceCallDemo() {
   const speechStartTimeRef = useRef<number | null>(null);
   const lastSpeechTimeRef = useRef<number>(0);
   const isPlayingResponseRef = useRef<boolean>(false);
-  const isProcessingRef = useRef<boolean>(false); // Ref mirror of isProcessing to avoid stale closures
+  const isProcessingRef = useRef<boolean>(false);
   const chunkCountRef = useRef<number>(0);
+  const noiseFloorRef = useRef<number>(0.08); // Default noise floor, will calibrate
+  const noiseCalibrationSamples = useRef<number[]>([]);
+  const vadStartTimeRef = useRef<number>(0);
 
   // Timer for call duration
   useEffect(() => {
@@ -172,6 +177,12 @@ export function VoiceCallDemo() {
     if (!analyser) return;
 
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    vadStartTimeRef.current = Date.now();
+    noiseCalibrationSamples.current = [];
+    noiseFloorRef.current = 0.08; // Reset default
+
+    console.log('[VAD] Starting with calibration phase...');
+    setDebugInfo('Calibrating mic noise floor...');
 
     vadIntervalRef.current = setInterval(() => {
       analyser.getByteFrequencyData(dataArray);
@@ -188,15 +199,52 @@ export function VoiceCallDemo() {
       setMicVolume(Math.min(1, rms * 5));
 
       const now = Date.now();
-      const isSpeechDetected = rms > SILENCE_THRESHOLD;
+      const elapsed = now - vadStartTimeRef.current;
+
+      // Phase 1: Calibrate ambient noise (first 1.5 seconds)
+      if (elapsed < NOISE_CALIBRATION_MS) {
+        noiseCalibrationSamples.current.push(rms);
+        const progress = Math.round((elapsed / NOISE_CALIBRATION_MS) * 100);
+        setDebugInfo(`Calibrating... ${progress}% (RMS: ${rms.toFixed(4)})`);
+        return;
+      }
+
+      // Finalize calibration on first frame after calibration period
+      if (noiseCalibrationSamples.current.length > 0) {
+        const samples = noiseCalibrationSamples.current;
+        const avgNoise = samples.reduce((a, b) => a + b, 0) / samples.length;
+        noiseFloorRef.current = Math.max(0.01, avgNoise * SPEECH_MULTIPLIER);
+        console.log(`[VAD] Noise floor calibrated: avg=${avgNoise.toFixed(4)}, threshold=${noiseFloorRef.current.toFixed(4)} (${samples.length} samples)`);
+        setDebugInfo(`Ready - threshold: ${noiseFloorRef.current.toFixed(3)} (noise: ${avgNoise.toFixed(3)})`);
+        noiseCalibrationSamples.current = []; // Clear to mark calibration done
+      }
+
+      const threshold = noiseFloorRef.current;
+      const isSpeechDetected = rms > threshold;
 
       if (isSpeechDetected) {
         if (!speechStartTimeRef.current) {
           speechStartTimeRef.current = now;
-          console.log('[VAD] Speech started');
+          console.log(`[VAD] Speech started (RMS: ${rms.toFixed(4)} > ${threshold.toFixed(4)})`);
         }
         lastSpeechTimeRef.current = now;
         setIsSpeaking(true);
+
+        // Force send after MAX_SPEECH_DURATION if still talking
+        const speechDuration = now - speechStartTimeRef.current;
+        if (
+          speechDuration >= MAX_SPEECH_DURATION_MS &&
+          !isProcessingRef.current &&
+          !isPlayingResponseRef.current
+        ) {
+          console.log(`[VAD] Max speech duration (${MAX_SPEECH_DURATION_MS}ms) - force sending`);
+          setDebugInfo('Max duration - sending...');
+          sendAudio();
+          speechStartTimeRef.current = now; // Reset for next segment
+          setIsSpeaking(false);
+        } else {
+          setDebugInfo(`Speaking... ${(speechDuration / 1000).toFixed(1)}s (RMS: ${rms.toFixed(3)})`);
+        }
       } else {
         const silenceDuration = now - lastSpeechTimeRef.current;
         const speechDuration = speechStartTimeRef.current
@@ -210,13 +258,16 @@ export function VoiceCallDemo() {
           !isProcessingRef.current &&
           !isPlayingResponseRef.current
         ) {
-          console.log(`[VAD] Silence detected after ${speechDuration}ms speech. Sending ${audioChunksRef.current.length} chunks...`);
-          setDebugInfo(`Sending audio (${audioChunksRef.current.length} chunks)...`);
+          console.log(`[VAD] Silence after ${speechDuration}ms speech. Sending ${audioChunksRef.current.length} chunks...`);
+          setDebugInfo(`Sending (${speechDuration}ms speech)...`);
           sendAudio();
           speechStartTimeRef.current = null;
           setIsSpeaking(false);
         } else if (silenceDuration > 200) {
           setIsSpeaking(false);
+          if (!isProcessingRef.current) {
+            setDebugInfo(`Listening... (RMS: ${rms.toFixed(3)} / thresh: ${threshold.toFixed(3)})`);
+          }
         }
       }
     }, 50);

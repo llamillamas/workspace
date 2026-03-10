@@ -62,11 +62,15 @@ async def websocket_voice_call(websocket: WebSocket, call_id: str):
                 logger.info(f"Received text message: {data['text'][:100]}")
                 text_data = json.loads(data["text"])
                 await handle_control_message(websocket, call_handler, text_data)
+            elif data.get("type") == "websocket.disconnect":
+                logger.info(f"Client disconnected: {call_id}")
+                break
             else:
                 logger.warning(f"Received unknown data type: {list(data.keys())}")
 
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+        if "disconnect" not in str(e).lower():
+            logger.error(f"WebSocket error: {e}")
         try:
             await websocket.send_json({"type": "error", "data": {"message": str(e)}})
         except:
