@@ -29,7 +29,7 @@ class ClaudeClient:
         """
         self.api_key = api_key or os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
         self.api_url = "https://api.anthropic.com/v1/messages"
-        self.model = "claude-sonnet-4-6-20250514"  # Claude Sonnet 4.6
+        self.model = "claude-sonnet-4-5-20250929"  # Claude Sonnet 4.5
         self.use_mock = not self.api_key
         
         if self.use_mock:
@@ -86,15 +86,11 @@ class ClaudeClient:
             })
             
             # Prepare request to Claude API
-            # OAuth tokens (sk-ant-oat01-*) use Bearer auth; regular keys use x-api-key
             headers = {
+                "x-api-key": self.api_key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json"
             }
-            if self.api_key.startswith("sk-ant-oat01-"):
-                headers["Authorization"] = f"Bearer {self.api_key}"
-            else:
-                headers["x-api-key"] = self.api_key
             
             payload = {
                 "model": self.model,
